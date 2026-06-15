@@ -37,6 +37,34 @@ class _AdminDashboardScreenState
 
   Timer? refreshTimer;
 
+  final searchController = TextEditingController();
+
+  List get filteredBookings {
+    if (searchController.text.isEmpty) {
+      return bookings;
+    }
+
+    final query = searchController.text.toLowerCase();
+
+    return bookings.where((booking) {
+      return booking["name"]
+              .toString()
+              .toLowerCase()
+              .contains(query) ||
+          booking["phone_number"]
+              .toString()
+              .toLowerCase()
+              .contains(query) ||
+          booking["car_brand"]
+              .toString()
+              .toLowerCase()
+              .contains(query) ||
+          booking["car_model"]
+              .toString()
+              .toLowerCase()
+              .contains(query);
+    }).toList();
+  }
   @override
   void initState() {
     super.initState();
@@ -53,6 +81,7 @@ class _AdminDashboardScreenState
   @override
   void dispose() {
     refreshTimer?.cancel();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -279,16 +308,21 @@ class _AdminDashboardScreenState
           Expanded(
             child: isLoading
                 ? const Center(
-                    child:
-                        CircularProgressIndicator(),
+                    child: CircularProgressIndicator(),
                   )
-                : ListView.builder(
+                : filteredBookings.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No matching bookings found",
+                        ),
+                      )
+                    : ListView.builder(
                     itemCount:
-                        bookings.length,
+                        filteredBookings.length,
                     itemBuilder:
                         (context, index) {
                       final booking =
-                          bookings[index];
+                          filteredBookings[index];
 
                       return Card(
                         margin:
@@ -306,6 +340,9 @@ class _AdminDashboardScreenState
                                 CrossAxisAlignment
                                     .start,
                             children: [
+                              Text(
+                                "Phone: ${booking["phone_number"]}",
+                              ),
                               Text(
                                 booking[
                                     "service"],

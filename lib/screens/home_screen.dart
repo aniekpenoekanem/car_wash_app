@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? selectedDateTime;
 
   final nameController = TextEditingController();
+  final phoneController = TextEditingController();
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     nameController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
@@ -119,6 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> bookService() async {
     if (nameController.text.isEmpty ||
+        phoneController.text.isEmpty ||
         selectedBrand == null ||
         selectedModel == null ||
         selectedServiceId == null ||
@@ -136,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       body: json.encode({
         "customer_name": nameController.text,
+        "phone_number": phoneController.text,
         "service_id": selectedServiceId,
         "booking_time":
             selectedDateTime!.toIso8601String(),
@@ -155,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       nameController.clear();
+      phoneController.clear();
     } else {
       showMessage("Booking failed");
     }
@@ -196,6 +201,17 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: nameController,
               decoration: const InputDecoration(
                 labelText: "Customer Name",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: "Phone Number",
                 border: OutlineInputBorder(),
               ),
             ),

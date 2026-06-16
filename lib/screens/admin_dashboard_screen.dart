@@ -123,12 +123,16 @@ class _AdminDashboardScreenState
       }
 
       if (startDate != null) {
-        url += "&start_date=${startDate!.toIso8601String()}";
+        url += "&start_date=${startDate!.toIso8601String()}.split('T')[0]}";
       }
 
       if (endDate != null) {
-        url += "&end_date=${endDate!.toIso8601String()}";
+        url += "&end_date=${endDate!.toIso8601String()}.split('T')[0]}";
       }
+      print(
+          f"booking_date={booking_date}, "
+          f"start={start}, end={end}"
+      )
 
       final response = await http.get(
         Uri.parse(url),
@@ -188,6 +192,8 @@ Future<void> pickDate(bool isStart) async {
 Future<void> openWhatsApp(
   String phone,
   String customerName,
+  String service,
+  dynamic amount,
 ) async {
   String cleanedPhone = phone.replaceAll(RegExp(r'\D'), '');
 
@@ -196,17 +202,19 @@ Future<void> openWhatsApp(
   }
 
   const paymentLink =
-      "https://paystack.com/pay/carwash-payment";
+      "https://paystack.shop/pay/fsaofivyzc";
 
   final message = Uri.encodeComponent(
-    "Hello $customerName,\n\n"
-    "Your car wash booking is confirmed.\n"
-    "Please complete payment here:\n\n"
-    "$paymentLink",
+    'Hello $customerName,\n\n'
+    'Your booking for $service has been confirmed.\n'
+    'Amount due: ₦$amount\n\n'
+    'Please complete your payment here:\n'
+    '$paymentLink\n\n'
+    'Thank you for choosing our car wash service.',
   );
 
   final url = Uri.parse(
-    "https://wa.me/$cleanedPhone?text=$message",
+    'https://wa.me/$cleanedPhone?text=$message',
   );
 
   await launchUrl(
@@ -528,6 +536,8 @@ trailing: SizedBox(
         onPressed: () => openWhatsApp(
           booking["phone_number"],
           booking["name"],
+          booking["service"],
+          booking["amount"],
         ),
       ),
       booking["status"] == "service_pending"

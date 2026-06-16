@@ -148,6 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }),
     );
 
+    print("STATUS: ${res.statusCode}");
+    print("BODY: ${res.body}");
+
     if (res.statusCode == 200) {
       showMessage("Booking successful");
 

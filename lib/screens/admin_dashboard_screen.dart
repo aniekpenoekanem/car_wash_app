@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -151,6 +152,21 @@ class _AdminDashboardScreenState
       fetchBookings();
     } catch (_) {}
   }
+
+Future<void> openWhatsApp(String phone) async {
+  String cleanedPhone = phone.replaceAll(RegExp(r'\D'), '');
+
+  if (cleanedPhone.startsWith('0')) {
+    cleanedPhone = '234${cleanedPhone.substring(1)}';
+  }
+
+  final url = Uri.parse('https://wa.me/$cleanedPhone');
+
+  await launchUrl(
+    url,
+    mode: LaunchMode.externalApplication,
+  );
+}
 
   Widget statCard(
     String title,
@@ -365,26 +381,35 @@ class _AdminDashboardScreenState
                               ),
                             ],
                           ),
-                          trailing: booking[
-                                      "status"] ==
-                                  "service_pending"
-                              ? ElevatedButton(
-                                  onPressed:
-                                      () =>
-                                          updateStatus(
-                                    booking[
-                                        "id"],
-                                  ),
-                                  child:
-                                      const Text(
-                                    "Complete",
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.check,
-                                  color:
-                                      Colors.green,
-                                ),
+trailing: SizedBox(
+  width: 120,
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.end,
+    children: [
+      IconButton(
+        icon: const Icon(Icons.message),
+        color: Colors.green,
+        onPressed: () => openWhatsApp(
+          booking["phone_number"],
+        ),
+      ),
+      booking["status"] == "service_pending"
+          ? IconButton(
+              icon: const Icon(
+                Icons.check_circle,
+                color: Colors.blue,
+              ),
+              onPressed: () => updateStatus(
+                booking["id"],
+              ),
+            )
+          : const Icon(
+              Icons.check_circle,
+              color: Colors.green,
+            ),
+    ],
+  ),
+),
                         ),
                       );
                     },

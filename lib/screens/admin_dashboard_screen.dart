@@ -200,6 +200,17 @@ Future<void> openWhatsApp(String phone) async {
   );
 }
 
+Future<void> exportBookings() async {
+  final url = Uri.parse(
+    "${ApiService.baseUrl}/admin/export?token=${widget.token}",
+  );
+
+  await launchUrl(
+    url,
+    mode: LaunchMode.externalApplication,
+  );
+}
+
   Widget statCard(
     String title,
     String value,
@@ -239,6 +250,10 @@ Future<void> openWhatsApp(String phone) async {
           "Admin Dashboard",
         ),
         actions: [
+        IconButton(
+          icon: const Icon(Icons.download),
+          onPressed: exportBookings,
+        ),
           IconButton(
             icon: const Icon(
               Icons.miscellaneous_services,

@@ -33,6 +33,8 @@ class _AdminDashboardScreenState
 
   String? selectedBrand;
   String? selectedType;
+  DateTime? startDate;
+  DateTime? endDate;
 
   bool isLoading = true;
 
@@ -119,6 +121,14 @@ class _AdminDashboardScreenState
         url += "&car_type=$selectedType";
       }
 
+      if (startDate != null) {
+        url += "&start_date=${startDate!.toIso8601String()}";
+      }
+
+      if (endDate != null) {
+        url += "&end_date=${endDate!.toIso8601String()}";
+      }
+
       final response = await http.get(
         Uri.parse(url),
       );
@@ -152,6 +162,27 @@ class _AdminDashboardScreenState
       fetchBookings();
     } catch (_) {}
   }
+
+Future<void> pickDate(bool isStart) async {
+  final picked = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(2024),
+    lastDate: DateTime(2100),
+  );
+
+  if (picked != null) {
+    setState(() {
+      if (isStart) {
+        startDate = picked;
+      } else {
+        endDate = picked;
+      }
+    });
+
+    fetchBookings();
+  }
+}
 
 Future<void> openWhatsApp(String phone) async {
   String cleanedPhone = phone.replaceAll(RegExp(r'\D'), '');
@@ -227,6 +258,52 @@ Future<void> openWhatsApp(String phone) async {
       ),
       body: Column(
         children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => pickDate(true),
+                  child: Text(
+                    startDate == null
+                        ? "Start Date"
+                        : startDate!
+                            .toString()
+                            .split(' ')[0],
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => pickDate(false),
+                  child: Text(
+                    endDate == null
+                        ? "End Date"
+                        : endDate!
+                            .toString()
+                            .split(' ')[0],
+                  ),
+                ),
+              ),
+
+              IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    startDate = null;
+                    endDate = null;
+                  });
+
+                  fetchBookings();
+                },
+              ),
+            ],
+          ),
+        ),
           Padding(
             padding:
                 const EdgeInsets.all(12),

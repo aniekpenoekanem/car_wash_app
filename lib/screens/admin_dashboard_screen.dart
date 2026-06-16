@@ -123,16 +123,25 @@ class _AdminDashboardScreenState
       }
 
       if (startDate != null) {
-        url += "&start_date=${startDate!.toIso8601String()}.split('T')[0]}";
+        final formattedStartDate =
+            startDate!.toIso8601String().split('T')[0];
+
+        url += "&start_date=$formattedStartDate";
       }
 
       if (endDate != null) {
-        url += "&end_date=${endDate!.toIso8601String()}.split('T')[0]}";
+        final formattedEndDate =
+           endDate!.toIso8601String().split('T')[0];
+
+        url += "&end_date=$formattedEndDate";
       }
+
       print(
-          f"booking_date={booking_date}, "
-          f"start={start}, end={end}"
-      )
+        'start_date=${startDate?.toIso8601String().split('T')[0]}, '
+        'end_date=${endDate?.toIso8601String().split('T')[0]}',
+      );
+
+      print('Request URL: $url');
 
       final response = await http.get(
         Uri.parse(url),

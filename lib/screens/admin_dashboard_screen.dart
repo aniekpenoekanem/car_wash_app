@@ -185,14 +185,29 @@ Future<void> pickDate(bool isStart) async {
   }
 }
 
-Future<void> openWhatsApp(String phone) async {
+Future<void> openWhatsApp(
+  String phone,
+  String customerName,
+) async {
   String cleanedPhone = phone.replaceAll(RegExp(r'\D'), '');
 
   if (cleanedPhone.startsWith('0')) {
     cleanedPhone = '234${cleanedPhone.substring(1)}';
   }
 
-  final url = Uri.parse('https://wa.me/$cleanedPhone');
+  const paymentLink =
+      "https://paystack.com/pay/carwash-payment";
+
+  final message = Uri.encodeComponent(
+    "Hello $customerName,\n\n"
+    "Your car wash booking is confirmed.\n"
+    "Please complete payment here:\n\n"
+    "$paymentLink",
+  );
+
+  final url = Uri.parse(
+    "https://wa.me/$cleanedPhone?text=$message",
+  );
 
   await launchUrl(
     url,
@@ -209,6 +224,18 @@ Future<void> exportBookings() async {
     url,
     mode: LaunchMode.externalApplication,
   );
+}
+
+Future<void> markPaid(int bookingId) async {
+  try {
+    await http.put(
+      Uri.parse(
+        "${ApiService.baseUrl}/admin/mark_paid/$bookingId?token=${widget.token}",
+      ),
+    );
+
+    fetchBookings();
+  } catch (_) {}
 }
 
   Widget statCard(
@@ -472,6 +499,9 @@ Future<void> exportBookings() async {
                               Text(
                                 "Status: ${booking["status"]}",
                               ),
+                              Text(
+                                  "Payment: ${booking["payment_status"]}",
+                                ),
                             ],
                           ),
 trailing: SizedBox(
@@ -479,11 +509,25 @@ trailing: SizedBox(
   child: Row(
     mainAxisAlignment: MainAxisAlignment.end,
     children: [
+    IconButton(
+      icon: Icon(
+        booking["payment_status"] == "paid"
+            ? Icons.paid
+            : Icons.payment,
+      ),
+      color: booking["payment_status"] == "paid"
+          ? Colors.green
+          : Colors.orange,
+      onPressed: booking["payment_status"] == "paid"
+          ? null
+          : () => markPaid(booking["id"]),
+    ),
       IconButton(
         icon: const Icon(Icons.message),
         color: Colors.green,
         onPressed: () => openWhatsApp(
           booking["phone_number"],
+          booking["name"],
         ),
       ),
       booking["status"] == "service_pending"

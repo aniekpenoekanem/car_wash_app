@@ -203,15 +203,13 @@ Future<void> openWhatsApp(
   String customerName,
   String service,
   dynamic amount,
+  String paymentLink,
 ) async {
   String cleanedPhone = phone.replaceAll(RegExp(r'\D'), '');
 
   if (cleanedPhone.startsWith('0')) {
     cleanedPhone = '234${cleanedPhone.substring(1)}';
   }
-
-  const paymentLink =
-      "https://paystack.shop/pay/fsaofivyzc";
 
   final message = Uri.encodeComponent(
     'Hello $customerName,\n\n'
@@ -542,11 +540,14 @@ trailing: SizedBox(
       IconButton(
         icon: const Icon(Icons.message),
         color: Colors.green,
-        onPressed: () => openWhatsApp(
+onPressed: booking["payment_url"] == null
+    ? null
+    : () => openWhatsApp(
           booking["phone_number"],
           booking["name"],
           booking["service"],
           booking["amount"],
+          booking["payment_url"],
         ),
       ),
       booking["status"] == "service_pending"

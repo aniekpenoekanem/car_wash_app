@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../services/api_service.dart';
 import 'admin_login_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -22,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic> carData = {};
 
   bool loading = true;
+  bool isBooking = false;
 
   int? selectedServiceId;
   String? selectedBrand;
@@ -31,57 +33,147 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
+  final emailController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    loadServices();
-    loadCars();
+@override
+void initState() {
+  super.initState();
+
+  debugPrint(
+    'Using API base URL: ${ApiService.baseUrl}',
+  );
+
+  loadServices();
+  loadCars();
+}
+
+Future<void> launchPayment(int bookingId) async {
+  try {
+    final response = await http.post(
+      Uri.parse(
+        '${ApiService.baseUrl}/payments/initialize/$bookingId',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      final paymentUrl = data['payment_url'];
+
+      await launchUrl(
+        Uri.parse(paymentUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } else {
+      debugPrint(
+        'Payment initialization failed: ${response.body}',
+      );
+    }
+  } catch (e) {
+    debugPrint('Payment error: $e');
   }
+}
 
   @override
   void dispose() {
     nameController.dispose();
     phoneController.dispose();
+    emailController.dispose();
     super.dispose();
   }
 
-  Future<void> loadServices() async {
-    try {
-      final res = await http.get(
-        Uri.parse(
-          "${ApiService.baseUrl}/services",
-        ),
+Future<void> loadServices() async {
+  try {
+    debugPrint(
+      'Loading services from: ${ApiService.baseUrl}/services',
+    );
+
+    final res = await http.get(
+      Uri.parse(
+        '${ApiService.baseUrl}/services',
+      ),
+    );
+
+    debugPrint(
+      'Services status: ${res.statusCode}',
+    );
+
+    debugPrint(
+      'Services body: ${res.body}',
+    );
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(res.body);
+
+      debugPrint(
+        'Services count: ${decoded.length}',
       );
 
-      if (res.statusCode == 200) {
-        setState(() {
-          services = json.decode(res.body);
-          loading = false;
-        });
-      }
-    } catch (e) {
+      setState(() {
+        services = decoded;
+        loading = false;
+      });
+    } else {
+      debugPrint(
+        'Failed to load services',
+      );
+
       setState(() {
         loading = false;
       });
     }
-  }
+  } catch (e) {
+    debugPrint(
+      'loadServices error: $e',
+    );
 
-  Future<void> loadCars() async {
-    try {
-      final res = await http.get(
-        Uri.parse(
-          "${ApiService.baseUrl}/cars",
-        ),
+    setState(() {
+      loading = false;
+    });
+  }
+}
+
+Future<void> loadCars() async {
+  try {
+    debugPrint(
+      'Loading cars from: ${ApiService.baseUrl}/cars',
+    );
+
+    final res = await http.get(
+      Uri.parse(
+        '${ApiService.baseUrl}/cars',
+      ),
+    );
+
+    debugPrint(
+      'Cars status: ${res.statusCode}',
+    );
+
+    debugPrint(
+      'Cars body: ${res.body}',
+    );
+
+    if (res.statusCode == 200) {
+      final decoded = json.decode(res.body);
+
+      debugPrint(
+        'Car brands: ${decoded.keys.toList()}',
       );
 
-      if (res.statusCode == 200) {
-        setState(() {
-          carData = json.decode(res.body);
-        });
-      }
-    } catch (_) {}
+      setState(() {
+        carData = decoded;
+      });
+    } else {
+      debugPrint(
+        'Failed to load cars',
+      );
+    }
+  } catch (e) {
+    debugPrint(
+      'loadCars error: $e',
+    );
   }
+}
 
   Future<void> pickDateTime() async {
     final date = await showDatePicker(
@@ -119,54 +211,73 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> bookService() async {
-    if (nameController.text.isEmpty ||
-        phoneController.text.isEmpty ||
-        selectedBrand == null ||
-        selectedModel == null ||
-        selectedServiceId == null ||
-        selectedDateTime == null) {
-      showMessage("Please complete all fields");
+Future<void> bookService() async {
+  if (nameController.text.isEmpty ||
+      emailController.text.isEmpty ||
+      phoneController.text.isEmpty ||
+      selectedBrand == null ||
+      selectedModel == null ||
+      selectedServiceId == null ||
+      selectedDateTime == null) {
+    showMessage("Please complete all fields");
+    return;
+  }
+
+  final res = await http.post(
+    Uri.parse("${ApiService.baseUrl}/book"),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: json.encode({
+      "customer_name": nameController.text,
+      "email": emailController.text.trim(),
+      "phone_number": phoneController.text,
+      "service_id": selectedServiceId,
+      "booking_time": selectedDateTime!.toIso8601String(),
+      "car_brand": selectedBrand,
+      "car_model": selectedModel,
+    }),
+  );
+
+  print("STATUS: ${res.statusCode}");
+  print("BODY: ${res.body}");
+
+  if (res.statusCode == 200) {
+    final data = json.decode(res.body);
+
+    final bookingId = data["booking_id"];
+
+    if (bookingId == null) {
+      showMessage(
+        "Booking created, but payment could not start.",
+      );
       return;
     }
 
-    final res = await http.post(
-      Uri.parse(
-        "${ApiService.baseUrl}/book",
-      ),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: json.encode({
-        "customer_name": nameController.text,
-        "phone_number": phoneController.text,
-        "service_id": selectedServiceId,
-        "booking_time":
-            selectedDateTime!.toIso8601String(),
-        "car_brand": selectedBrand,
-        "car_model": selectedModel,
-      }),
+    showMessage(
+      "Booking created successfully. Redirecting to Paystack for payment...",
     );
 
-    print("STATUS: ${res.statusCode}");
-    print("BODY: ${res.body}");
+    await Future.delayed(
+      const Duration(seconds: 2),
+    );
 
-    if (res.statusCode == 200) {
-      showMessage("Booking successful");
+    await launchPayment(bookingId);
 
-      setState(() {
-        selectedServiceId = null;
-        selectedBrand = null;
-        selectedModel = null;
-        selectedDateTime = null;
-      });
+    setState(() {
+      selectedServiceId = null;
+      selectedBrand = null;
+      selectedModel = null;
+      selectedDateTime = null;
+    });
 
-      nameController.clear();
-      phoneController.clear();
-    } else {
-      showMessage("Booking failed");
-    }
+    nameController.clear();
+    emailController.clear();
+    phoneController.clear();
+  } else {
+    showMessage("Booking failed: ${res.body}");
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +326,15 @@ class _HomeScreenState extends State<HomeScreen> {
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
                 labelText: "Phone Number",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: "Email Address",
                 border: OutlineInputBorder(),
               ),
             ),
